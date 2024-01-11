@@ -1,7 +1,7 @@
 CC = g++
-CXXFLAGS = -std=c++17 -O3 -Wall -Wextra
-LIB = -ltbb
-SRC = poiseuille.cpp
+CXXFLAGS = -std=c++17 -O3 -Wall
+LIB =
+SRC = analytical.cpp
 EXE = a.out
 
 $(EXE) : $(SRC)
@@ -11,4 +11,4 @@ clean:
 	@rm -f $(EXE)
 
 distclean:
-	@rm -f *.vtk $(EXE)
+	@rm -f *.vtk *.dat *.png $(EXE)

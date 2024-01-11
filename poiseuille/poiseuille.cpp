@@ -21,8 +21,8 @@ double rholb = 1.0; // Density in lattice units
 int Nx = 100;        // Number of nodes in x-direction or length in lattice units
 int Ny = 100;        // Number of nodes in y-direction or length in lattice units
 int Nz = 500;       // Number of nodes in z-direction or length in lattice units
-double max_t = 1000; // Total time in lattice units
-int vtk_freq = 50;   // Frequency in LU for output of terminal message and profiles (use 0 for no messages)
+double max_t = 5000; // Total time in lattice units
+int vtk_freq = 4500;  // Frequency in LU for output of terminal message and profiles (use 0 for no messages)
 
 enum class CellType : uint8_t
 {
@@ -74,13 +74,16 @@ auto lbParameters(double ulb, int lref, double Re)
 }
 
 // Print the simulation parameters to the terminal.
-void printParameters(double Re, double omega, double ulb, double max_t)
+void printParameters(double Re, double nu, double omega, double ulb, double max_t)
 {
     cout << "Lid-driven 3D cavity, " << endl;
     cout << "Re = " << Re << endl;
-    cout << "omega = " << omega << endl;
+    cout << "Kinematic viscosity = " << nu << endl;
+    cout << "relaxation time = " << 1.0/omega << endl;
     cout << "ulb = " << ulb << endl;
     cout << "max_t = " << max_t << endl;
+    cout << "Ma = " << fabs(ulb/sqrt(1.0/3.0)) << std::endl;
+    
 }
 
 // Instances of this class are function objects: the function-call operator executes a
@@ -213,6 +216,7 @@ struct LBM
         {
             auto [rho, u] = macro(f0);
             auto [iX, iY, iZ] = i_to_xyz(i);
+                   
             double usqr = 1.5 * (u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
 
             for (int k = 0; k < 9; ++k)
@@ -430,7 +434,7 @@ int main()
     Dim dim{Nx, Ny, Nz};
 
     auto [nu, omega] = lbParameters(ulb, Nx - 2, Re);
-    printParameters(Re, omega, ulb, max_t);
+    printParameters(Re, nu, omega, ulb, max_t);
 
     vector<CellData> lattice_vect(LBM::sizeOfLattice(dim.nelem));
     CellData *lattice = &lattice_vect[0];
@@ -461,17 +465,19 @@ int main()
 
     // Set up the geometry of the cavity.
     setupFlags(lbm);
-
-    saveVtkFlags(lbm);
+    //saveVtkFlags(lbm);
 
     for (int time_iter = 0; time_iter < max_t; ++time_iter)
     {
 
-        std::cout << time_iter << std::endl;
+        std::cout << "iter = " << time_iter << std::endl;
 
         // write flow data in vtk
         if (time_iter % vtk_freq == 0)
-            saveVtkFields(lbm, time_iter);
+        {
+          std::cout << "write vtk \n";
+          saveVtkFields(lbm, time_iter);
+	}
 
         // With the double-population scheme, collision and streaming are fused and executed in the following loop.
         for_each(execution::par_unseq, lattice, lattice + dim.nelem, lbm);
@@ -479,4 +485,7 @@ int main()
         // After a collision-streaming cycle, swap the parity for the next iteration.
         *parity = 1 - *parity;
     }
+    
+    
+    
 }
